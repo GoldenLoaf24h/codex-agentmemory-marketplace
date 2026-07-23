@@ -1,44 +1,38 @@
 # Codex AgentMemory Marketplace (Windows)
 
-> 本仓库基于上游开源项目 [rohitg00/agentmemory](https://github.com/rohitg00/agentmemory) 做 **Codex / ChatGPT Desktop** 侧打包与 Windows 适配。不是 OpenAI 官方插件，也不是上游仓库本体。
-
 Community packaging of [agentmemory](https://github.com/rohitg00/agentmemory) for **Codex / ChatGPT Desktop on Windows**.
 
-**Git marketplace** 插件包，其他人可以通过添加此仓库为插件市场来安装。
+This is a **Git marketplace** plugin package, not an OpenAI official Plugins Directory listing. Others can add this repository as a plugin marketplace and install the `agentmemory` plugin from it.
 
----
+## Prerequisites
 
-## 安装前准备 / Prerequisites
+agentmemory depends on native modules (`onnxruntime-node`, `sharp`, `protobufjs`) that require postinstall scripts to compile. **You must allow these scripts before installing.**
 
-agentmemory 的 npm 包依赖 `onnxruntime-node`、`sharp`、`protobufjs` 等原生模块，这些模块需要执行 postinstall 脚本编译。在安装之前，**必须先允许这些脚本运行**。
-
-### 方式一：安装时临时允许（推荐）
+### Option A: Allow on install (recommended)
 
 ```powershell
 npm install -g --allow-scripts=onnxruntime-node,sharp,protobufjs @agentmemory/agentmemory
 ```
 
-### 方式二：永久配置 allow-scripts
+### Option B: Permanent allow-scripts config
 
 ```powershell
 npm config set allow-scripts=onnxruntime-node,sharp,protobufjs,protobufjs --location=user
 npm install -g @agentmemory/agentmemory
 ```
 
-配置后，后续安装/升级 npm 包时不再需要重复添加 `--allow-scripts`。
+After this, subsequent installs/upgrades won't need the `--allow-scripts` flag.
 
-### 验证安装
+### Verify installation
 
 ```powershell
 agentmemory
 ```
 
-首次运行会进入引导配置（选择使用的 agent、配置 LLM provider 等）。配置完成后 agentmemory 后端会启动在 `http://localhost:3111`。
+First run launches an interactive setup (select agents, configure LLM provider). After setup, the backend runs at `http://localhost:3111`.
 
-> **完整安装方案请参阅上游官方文档：**  
+> **Full installation docs:**  
 > [github.com/rohitg00/agentmemory → Installation](https://github.com/rohitg00/agentmemory)
-
----
 
 ## Target environment
 
@@ -54,7 +48,7 @@ agentmemory
 
 - Portable MCP config via `npx -y @agentmemory/mcp`
 - Codex hooks for session start / prompt submit / tool use / compact / stop
-- **SessionStart auto-start**: plugin automatically launches `agentmemory` backend (`localhost:3111`) on Codex startup if not already running
+- **SessionStart auto-start**: plugin launches `agentmemory` backend (`localhost:3111`) on Codex startup if not already running
 - Windows-native auto-start via `shell: true` (uses `cmd.exe` to resolve `agentmemory.cmd` from PATH)
 - Optimized skills:
   - `recall`, `remember`, `forget`
@@ -67,7 +61,7 @@ agentmemory
 - ChatGPT desktop app with Codex / Work mode plugins
 - **Windows** recommended
 - Node.js 18+ on PATH
-- `agentmemory` CLI installed globally（见上方安装前准备）
+- `agentmemory` CLI installed globally (see [Prerequisites](#prerequisites) above)
 
 ## Add this marketplace in ChatGPT desktop
 
@@ -98,9 +92,9 @@ Marketplace file: `.agents/plugins/marketplace.json`
 On SessionStart the plugin:
 
 1. Probes `http://127.0.0.1:3111/agentmemory/livez`
-2. If backend is not running, starts `agentmemory` in background via `cmd.exe` shell (equivalent to typing `agentmemory` in PowerShell)
+2. If backend is not running, spawns `agentmemory` in background via `cmd.exe` shell (equivalent to typing `agentmemory` in PowerShell)
 3. Waits up to ~30s for readiness
-4. Loads session context
+4. Registers session context
 
 If auto-start fails, run manually in PowerShell, then restart Codex:
 
@@ -112,7 +106,7 @@ agentmemory
 
 | Mode | When | Tools |
 |---|---|---|
-| Local / InMemoryKV | backend not reachable | fewer MCP tools, standalone storage |
+| Local / InMemoryKV | backend not reachable | reduced tools, standalone storage |
 | **Proxy** | backend live on `:3111` | **full tool surface (50+)** |
 
 Probe livez. Do not treat "recall returned something" as proof that Proxy mode is active.
@@ -123,11 +117,11 @@ This package sets `AGENT_ID=codex` for the Codex MCP server. If you also run Her
 
 ## Windows notes
 
-- This packaging was validated for **Windows + Codex Desktop**
+- Validated for **Windows + Codex Desktop**
 - Prefer one-command start: `agentmemory` in PowerShell
 - Ensure `node` is on PATH (`node --version` works in PowerShell)
-- Avoid manually splitting engine processes or running `iii` separately
-- If npm postinstall blocks (`onnxruntime-node`, `sharp`, `protobufjs`), see [安装前准备](#安装前准备--prerequisites) above
+- Do not manually split engine processes or run `iii` separately
+- If npm postinstall blocks (`onnxruntime-node`, `sharp`, `protobufjs`), see [Prerequisites](#prerequisites) above
 
 ## Attribution
 
@@ -138,7 +132,7 @@ This package sets `AGENT_ID=codex` for the Codex MCP server. If you also run Her
 
 ## Privacy
 
-Memory is stored on the user's machine under `~/.agentmemory/data/`. This marketplace package does not provide a hosted multi-tenant cloud service.
+Memory is stored locally under `~/.agentmemory/data/`. This marketplace package does not provide a hosted multi-tenant cloud service.
 
 ## Disclaimer
 
