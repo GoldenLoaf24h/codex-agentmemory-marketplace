@@ -22,6 +22,23 @@ Codex plugin agentmemory MCP server workflow:
 When the backend is running at `localhost:3111`, the MCP operates in **Proxy mode** with full tool surface.
 When the backend is unreachable, it falls back to local InMemoryKV with a reduced tool set.
 
+
+## Prerequisites
+
+Before troubleshooting, ensure agentmemory is installed globally with native module support:
+
+```powershell
+npm install -g --allow-scripts=onnxruntime-node,sharp,protobufjs @agentmemory/agentmemory
+```
+
+Or set permanent config:
+```powershell
+npm config set allow-scripts=onnxruntime-node,sharp,protobufjs,protobufjs --location=user
+npm install -g @agentmemory/agentmemory
+```
+
+Verify: `agentmemory` command must be available in PowerShell.
+
 ## Diagnostic Flow (in order)
 
 ### 1. Check if MCP tools are loaded
@@ -50,6 +67,12 @@ Call `memory_save` with a test payload, then `memory_recall` the same content.
 
 ## Common Issues
 
+### 0. `spawn('npx', ...)` fails on Windows -- auto-start hook broken (hit 2026-07-23)
+**Symptom:** SessionStart auto-start hook silently fails. Backend never starts. `agentmemory` command may disappear from PATH after the failed spawn pollutes npm state.
+**Root cause:** `npx` on Windows is `npx.cmd` (a batch wrapper). Node.js `child_process.spawn('npx', ...)` without `shell: true` cannot reliably find `.cmd` files. Additionally, `npx -y` uses its own cache separate from the global install, causing version mismatch.
+**Fix:** The auto-start script must use `spawn('agentmemory', [], { shell: true })` instead of `spawn('npx', ['-y', '@agentmemory/agentmemory'])`. The `shell: true` flag lets `cmd.exe` resolve `agentmemory.cmd` from PATH -- identical to typing `agentmemory` in PowerShell.
+**Recovery if command disappeared:** Re-run `npm install -g @agentmemory/agentmemory` to restore the PATH shims.
+
 ### 1. `ERR_MODULE_NOT_FOUND` -- incomplete nested @agentmemory package
 **Symptom:** MCP fails because `@agentmemory/mcp\node_modules\@agentmemory\` has only `viewer/`, missing `standalone.mjs`.
 **Fix:** Remove the nested incomplete package so Node resolves to the global install:
@@ -68,6 +91,10 @@ Then restart Codex.
 
 ### 2. MCP tools missing after install -- plugin not activated
 Check `~/.codex/config.toml` for the plugin in the `[plugins]` list.
+If the `agentmemory` command itself is missing from PowerShell, the npm global state may have been corrupted by a failed auto-start hook. Reinstall:
+```powershell
+npm install -g @agentmemory/agentmemory
+```
 Try: restart the app or start a new task.
 
 ### 3. FALSE-ALIVE trap (important)
@@ -93,7 +120,9 @@ Run manually:
 agentmemory
 ```
 
-Wait for the status box, then restart Codex.
+Wait for the status box (REST API at `http://localhost:3111`), then restart Codex.
+
+**Important:** The auto-start hook probes `localhost:3111/agentmemory/livez` first. If the backend is already running (e.g. started manually), it skips startup entirely -- no conflict.
 
 ## Verification Checklist
 
@@ -103,6 +132,16 @@ All must pass:
 - [ ] `memory_save` returns `"saved": "mem_xxx"`
 - [ ] `memory_recall` finds the saved content
 - [ ] Data persists after Codex restart (proxy mode confirmed)
+
+
+## Key lessons (2026-07-23)
+
+- **`spawn('npx', ...)` is unreliable on Windows** -- always use `shell: true` or call the binary directly
+- **`npx -y` cache is separate from `npm install -g`** -- version mismatch can occur
+- **Official repo has no Windows auto-start solution** (Issue #524 still open) -- our `shell: true` approach is the community workaround
+- **`agentmemory connect` is unsupported on native Windows** (Issue #557) -- manual config only
+- **Failed auto-start can corrupt npm global state** -- reinstall if `agentmemory` command disappears
+- **Multiple npm global paths in PATH can cause confusion** -- verify with `npm config get prefix` and `npm root -g`
 
 ## Reference Files
 
