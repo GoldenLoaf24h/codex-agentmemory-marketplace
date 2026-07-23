@@ -2,7 +2,24 @@
 
 Community packaging of [agentmemory](https://github.com/rohitg00/agentmemory) for **Codex / ChatGPT Desktop on Windows**.
 
-This is a **Git marketplace** plugin package, not an OpenAI official Plugins Directory listing. Others can add this repository as a plugin marketplace and install the `agentmemory` plugin from it.
+This is a **Git marketplace** plugin package, not an OpenAI official Plugins Directory listing.
+
+## Quick start
+
+```powershell
+# 1. Install agentmemory globally (allow native module postinstall scripts)
+npm install -g --allow-scripts=onnxruntime-node,sharp,protobufjs @agentmemory/agentmemory
+
+# 2. Start the backend
+agentmemory
+
+# 3. Open ChatGPT Desktop → Plugins → Add plugin marketplace
+#    Source: https://github.com/GoldenLoaf24h/codex-agentmemory-marketplace
+#    Install "AgentMemory (Codex / Windows)" and start a new task
+```
+
+> **Full upstream installation docs:**  
+> [github.com/rohitg00/agentmemory → Installation](https://github.com/rohitg00/agentmemory)
 
 ## Prerequisites
 
@@ -29,10 +46,7 @@ After this, subsequent installs/upgrades won't need the `--allow-scripts` flag.
 agentmemory
 ```
 
-First run launches an interactive setup (select agents, configure LLM provider). After setup, the backend runs at `http://localhost:3111`.
-
-> **Full installation docs:**  
-> [github.com/rohitg00/agentmemory → Installation](https://github.com/rohitg00/agentmemory)
+First run launches an interactive setup (select agents, configure LLM provider). After setup, the backend starts on `http://localhost:3111`.
 
 ## Target environment
 
@@ -46,11 +60,10 @@ First run launches an interactive setup (select agents, configure LLM provider).
 
 ## What you get
 
-- Portable MCP config via `npx -y @agentmemory/mcp`
-- Codex hooks for session start / prompt submit / tool use / compact / stop
-- **SessionStart auto-start**: plugin launches `agentmemory` backend (`localhost:3111`) on Codex startup if not already running
-- Windows-native auto-start via `shell: true` (uses `cmd.exe` to resolve `agentmemory.cmd` from PATH)
-- Optimized skills:
+- **MCP config** — Plugin ships `.mcp.json` pointing to `@agentmemory/mcp`, no manual setup needed
+- **Lifecycle hooks** — SessionStart / UserPromptSubmit / PreToolUse / PostToolUse / PreCompact / Stop
+- **Auto-start** — SessionStart hook spawns `agentmemory` backend on `:3111` if not already running (via `cmd.exe` shell, same as typing in PowerShell)
+- **Optimized skills**:
   - `recall`, `remember`, `forget`
   - `handoff`, `recap`, `session-history`
   - `commit-context`, `commit-history`
@@ -61,59 +74,54 @@ First run launches an interactive setup (select agents, configure LLM provider).
 - ChatGPT desktop app with Codex / Work mode plugins
 - **Windows** recommended
 - Node.js 18+ on PATH
-- `agentmemory` CLI installed globally (see [Prerequisites](#prerequisites) above)
+- `agentmemory` CLI installed globally (see [Prerequisites](#prerequisites))
 
-## Add this marketplace in ChatGPT desktop
+## Add this marketplace in ChatGPT Desktop
 
 1. Open **Plugins** → **Add plugin marketplace**
 2. Fill:
 
 | Field | Value |
 |---|---|
-| Source | `GoldenLoaf24h/codex-agentmemory-marketplace` |
+| Source | `https://github.com/GoldenLoaf24h/codex-agentmemory-marketplace` |
 | Git ref | `main` |
 | Sparse path | *(leave empty)* |
 
 3. Click **Add marketplace**
 4. Install **AgentMemory (Codex / Windows)** from the marketplace
-5. Start a **new chat / new task** after install
-
-CLI equivalent:
-
-```bash
-codex plugin marketplace add GoldenLoaf24h/codex-agentmemory-marketplace --ref main
-codex plugin add agentmemory@codex-agentmemory
-```
+5. **Restart** the app or start a **new task** after install
 
 Marketplace file: `.agents/plugins/marketplace.json`
 
-## First-run behavior (Windows / Codex)
+## First-run behavior
 
 On SessionStart the plugin:
 
 1. Probes `http://127.0.0.1:3111/agentmemory/livez`
-2. If backend is not running, spawns `agentmemory` in background via `cmd.exe` shell (equivalent to typing `agentmemory` in PowerShell)
+2. If backend is down, spawns `agentmemory` in background via `cmd.exe` (identical to typing `agentmemory` in PowerShell)
 3. Waits up to ~30s for readiness
 4. Registers session context
 
-If auto-start fails, run manually in PowerShell, then restart Codex:
+If auto-start fails, start the backend manually, then restart Codex:
 
 ```powershell
 agentmemory
 ```
 
+Keep that terminal open. The backend must be reachable at port **3111**.
+
 ## Modes
 
 | Mode | When | Tools |
 |---|---|---|
-| Local / InMemoryKV | backend not reachable | reduced tools, standalone storage |
+| Local / InMemoryKV | backend not reachable at `:3111` | reduced tools, standalone storage |
 | **Proxy** | backend live on `:3111` | **full tool surface (50+)** |
 
-Probe livez. Do not treat "recall returned something" as proof that Proxy mode is active.
+> Probe `http://127.0.0.1:3111/agentmemory/livez` to check status. A tool returning data is **not** proof that Proxy mode is active.
 
 ## Multi-agent note
 
-This package sets `AGENT_ID=codex` for the Codex MCP server. If you also run Hermes or another client against the same local agentmemory instance, give each client a distinct `AGENT_ID` to avoid data collision.
+This package sets `AGENT_ID=codex` for the Codex MCP server. If you also run Hermes or another client against the same agentmemory instance, give each client a distinct `AGENT_ID` to avoid data collision.
 
 ## Windows notes
 
@@ -121,18 +129,17 @@ This package sets `AGENT_ID=codex` for the Codex MCP server. If you also run Her
 - Prefer one-command start: `agentmemory` in PowerShell
 - Ensure `node` is on PATH (`node --version` works in PowerShell)
 - Do not manually split engine processes or run `iii` separately
-- If npm postinstall blocks (`onnxruntime-node`, `sharp`, `protobufjs`), see [Prerequisites](#prerequisites) above
+- Persistent allow-scripts config: `npm config set allow-scripts=... --location=user` (see [Prerequisites](#prerequisites))
 
 ## Attribution
 
 - Upstream project: [rohitg00/agentmemory](https://github.com/rohitg00/agentmemory)
 - Upstream author: Rohit Ghumare
 - License: Apache-2.0 (see `LICENSE`)
-- This repository packages Codex-oriented install metadata, hooks, skills, and Windows-friendly startup for local use
 
 ## Privacy
 
-Memory is stored locally under `~/.agentmemory/data/`. This marketplace package does not provide a hosted multi-tenant cloud service.
+Memory is stored locally under `%USERPROFILE%\.agentmemory\data\` (`~/.agentmemory/data/` on Windows). This package does not provide a hosted cloud service.
 
 ## Disclaimer
 
