@@ -1,17 +1,20 @@
 #!/usr/bin/env node
 /**
  * start-agentmemory.mjs
- * 
+ *
  * Starts the agentmemory REST API in background if it's not already running.
  * Part of the Codex agentmemory plugin — no core files modified.
- * 
+ *
  * How it works:
  * 1. Probes localhost:3111/agentmemory/livez
  * 2. If already responding → exit (fast path, ~200ms)
- * 3. If not → spawns `npx -y @agentmemory/agentmemory` in background
+ * 3. If not → spawns `agentmemory` in background via shell (cmd.exe on Windows resolves the .cmd shim)
  * 4. Polls until livez responds or timeout (30s)
- * 
- * Safe on upgrades: uses the official CLI via npx, same as manual start.
+ *
+ * Why shell: true instead of npx:
+ * - npx on Windows is npx.cmd, which child_process.spawn without shell cannot reliably find
+ * - npx caches the package separately from npm global install, risking version mismatch
+ * - spawn('agentmemory', { shell: true }) works identically to typing in terminal
  */
 
 import { spawn } from 'node:child_process';
@@ -51,15 +54,18 @@ async function main() {
     process.exit(0);
   }
 
-  console.log('[agentmemory] Starting REST API (official CLI)...');
+  console.log('[agentmemory] Starting REST API via shell...');
 
-  const child = spawn('npx', ['-y', '@agentmemory/agentmemory'], {
+  // spawn with shell: true so cmd.exe resolves agentmemory(.cmd) from PATH,
+  // matching what the user types in terminal. No npx, no npm prefix lookup.
+  const child = spawn('agentmemory', [], {
     cwd: DATA_DIR,
+    shell: true,
     detached: true,
     stdio: 'ignore',
     windowsHide: true,
   });
-  child.unref();  // Don't keep the event loop alive
+  child.unref();
 
   // Wait for it to be ready
   for (let i = 0; i < MAX_WAIT_SEC; i++) {
@@ -72,7 +78,7 @@ async function main() {
 
   // Timeout — warn but don't block Codex startup
   console.error(`[agentmemory] WARNING: REST API did not start within ${MAX_WAIT_SEC}s`);
-  console.error('[agentmemory] Run manually: npx -y @agentmemory/agentmemory');
+  console.error('[agentmemory] Run manually: agentmemory');
   process.exit(1);
 }
 

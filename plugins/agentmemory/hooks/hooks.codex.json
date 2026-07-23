@@ -5,8 +5,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/start-agentmemory.mjs\"",
-            "statusMessage": "agentmemory: starting backend"
+            "statusMessage": "agentmemory: starting backend",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/start-agentmemory.mjs\""
           },
           {
             "type": "command",
