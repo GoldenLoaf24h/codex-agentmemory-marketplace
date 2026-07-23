@@ -1,127 +1,118 @@
 ---
 name: agentmemory-troubleshooting
-description: "Diagnose and repair agentmemory MCP connectivity in the Codex plugin — MCP tools not loading, memory_save/recall fails unexpectedly, or the MCP server falls back to local InMemoryKV mode. Focuses on the plugin layer: .mcp.json config, npm resolution, node module hygiene, and the standalone MCP server health. NOT for Hermes-specific issues."
+description: "Diagnose and repair agentmemory MCP connectivity in the Codex plugin -- MCP tools not loading, memory_save/recall fails unexpectedly, or the MCP server falls back to local InMemoryKV mode. Focuses on the plugin layer: .mcp.json config, npm resolution, node module hygiene, and MCP server health."
 ---
 
-# AgentMemory Troubleshooting — Codex Plugin Edition
+# AgentMemory Troubleshooting -- Codex Plugin Edition
 
-> 本 skill 只处理 **Codex 插件侧的 agentmemory MCP 连接问题**。Hermes 专属问题（hermes doctor、background_process_notifications、gateway restart 等）见 Hermes 版的 troubleshooting skill。
+This skill handles **Codex plugin-side agentmemory MCP connectivity issues only**.
+Hermes-specific issues belong in the Hermes troubleshooting skill.
 
-## 架构概要
+## Architecture Overview
 
-Codex 插件的 agentmemory MCP server 工作流程：
-
-```
-.mcp.json → @agentmemory/mcp/bin.mjs
-  → import("@agentmemory/agentmemory/dist/standalone.mjs")  // MCP stdio server
-     → probe localhost:3111 /agentmemory/livez
-        → 200 → Proxy 模式（转发 MCP 调用到 REST API）
-        → fail → Local 模式（InMemoryKV → standalone.json）
-```
-
-当前状态：**Local 模式**（REST API 端口 3111 的 business routes 返回 404，MCP 自动降级）。
-Local 模式提供 7 个核心 MCP 工具，数据存于 `~/.agentmemory/standalone.json`，功能完整可用。
-
-## 诊断流程（按顺序）
-
-### 1. MCP 工具是否已加载
-工具搜索里有没有 `mcp__agentmemory__memory_save` 等？没有 → MCP server 未启动或 Codex 未连接。
-
-### 2. MCP server 是否能正常启动
-在终端手动运行验证：
+Codex plugin agentmemory MCP server workflow:
 
 ```
-node D:\npm-global\node_modules\@agentmemory\mcp\bin.mjs
+.mcp.json -> npx -y @agentmemory/mcp
+  -> probe localhost:3111 /agentmemory/livez
+     -> 200 OK -> Proxy mode (forward MCP calls to REST API, 53 tools)
+     -> fail  -> Local / InMemoryKV mode (standalone storage, ~7 tools)
 ```
 
-预期输出：`[@agentmemory/mcp] Standalone MCP server v0.9.27 starting...`
-若报 `ERR_MODULE_NOT_FOUND` → 包解析问题（见常见问题 #1）。
+When the backend is running at `localhost:3111`, the MCP operates in **Proxy mode** with full tool surface.
+When the backend is unreachable, it falls back to local InMemoryKV with a reduced tool set.
 
-### 3. 插件配置检查
-验证 `.mcp.json`：
+## Diagnostic Flow (in order)
 
-- `command`: `node`
-- `args`: `["D:\\npm-global\\node_modules\\@agentmemory\\mcp\\bin.mjs"]`
+### 1. Check if MCP tools are loaded
+Are `mcp__agentmemory__*` tools visible in the tool list?
+No -> MCP server failed to start or Codex hasn't connected it yet.
+
+### 2. Test MCP server manually
+Run in terminal:
+
+```
+npx -y @agentmemory/mcp
+```
+
+Expected: `[@agentmemory/mcp] Standalone MCP server vX.Y.Z starting...`
+If `ERR_MODULE_NOT_FOUND` -> nested package resolution issue (see Common Issues).
+
+### 3. Verify plugin .mcp.json
+Path: `<plugin-root>/.mcp.json`
+
+- `command`: `npx` (or `node` with direct path)
+- `args`: `["-y", "@agentmemory/mcp"]`
 - `env.AGENT_ID`: `codex`
-- 路径必须是绝对路径，Windows 用双反斜杠或正斜杠均可
 
-### 4. 操作验证
-直接调用 `memory_save`：
-✅ 返回 `{"saved":"mem_xxx"}` → 正常
-❌ 返回 `{"success":false}` → Local 模式异常或数据存储有问题
+### 4. Round-trip test
+Call `memory_save` with a test payload, then `memory_recall` the same content.
 
-## 常见问题与修复
+## Common Issues
 
-### 1. `ERR_MODULE_NOT_FOUND` — 嵌套的 @agentmemory 包不完整
-**现象：** 启动 MCP 时报模块找不到，因为 `@agentmemory/mcp\node_modules\@agentmemory\agentmemory\dist\` 目录不完整（只有 `viewer/`，没有 `standalone.mjs`）。
-**修复：** 删除嵌套的不完整包，让 Node 回退到顶层 `D:\npm-global\node_modules\@agentmemory\agentmemory\`：
+### 1. `ERR_MODULE_NOT_FOUND` -- incomplete nested @agentmemory package
+**Symptom:** MCP fails because `@agentmemory/mcp\node_modules\@agentmemory\` has only `viewer/`, missing `standalone.mjs`.
+**Fix:** Remove the nested incomplete package so Node resolves to the global install:
 
 ```
-Remove-Item D:\npm-global\node_modules\@agentmemory\mcp\node_modules\@agentmemory -Recurse -Force
+Remove-Item %APPDATA%\npm\node_modules\@agentmemory\mcp\node_modules\@agentmemory -Recurse -Force
 ```
 
-然后重启 Codex。
+Or locate the correct path via:
 
-### 2. MCP tools 不出现 — 插件未启用
-检查 `C:\Users\Lenovo\.codex\config.toml` 中插件配置是否正确，确认 `agentmemory` 在 `[plugins]` 列表中。重启 Codex。
+```
+npm root -g
+```
 
-### 3. Local 模式 vs Proxy 模式困惑
-当前 REST API（`localhost:3111`）的 business routes 不注册（已知问题），MCP 自动进入 Local 模式。这是**正常运行状态**，不是故障。Local 模式提供 7 个工具：
+Then restart Codex.
 
-- `memory_save` / `memory_recall`
-- `memory_smart_search`
-- `memory_sessions`
-- `memory_export`
-- `memory_audit`
-- `memory_governance_delete`
+### 2. MCP tools missing after install -- plugin not activated
+Check `~/.codex/config.toml` for the plugin in the `[plugins]` list.
+Try: restart the app or start a new task.
 
-若未来 REST API 修复，MCP 会自动切换到 Proxy 模式（50+ 工具），无需修改配置。
+### 3. FALSE-ALIVE trap (important)
 
-### 4. REST API 端口 3111 被占但 business routes 404
-**现象：** `localhost:3111` 能连上（health/livez 正常），但所有 `/agentmemory/*` 业务路由返回 404。
-**根源：** `iii-config.yaml` 中 `iii-exec` 的 `watch` 路径是 `src/**/*.ts`（开发路径），生产环境不触发，`dist/index.mjs` 的路由注册代码从未执行。而 iii-http worker 占用了 3111 端口。
-**影响：** 不影响 Codex 插件使用（MCP 已降级到 Local 模式）。如需修复，需要改 `iii-config.yaml` 的 `watch` 和 `exec` 路径为生产值。
+**Symptom:** `memory_recall` returns data but the backend (`localhost:3111`) is actually down.
+**Cause:** When the MCP detects the backend is unreachable, it falls back to **InMemoryKV cache**, which may still contain stale data from a previous session. New writes will **not persist**.
 
-## 重要 Pitfalls
+**Never use `memory_recall` alone to determine backend health.**
 
-- **`curl` 被 `rtk` hook 包装**，输出会带 `[rtk] /!\ No hook installed` 污染信息。用 `curl.exe`（真实二进制）或 Python `urllib` 代替。
-- **`node` 路径：** 本机 `D:\nodejs\node.exe` 或 `D:\npm-global\node.exe`。不要假设 `node` 不在 PATH 里，也不要用死路径。
-- **`taskkill` 语法：** Windows `/PID xxx /F`（单斜杠），不是 `//PID`。
-- **`start cwd` 决定 data 目录（#892）：** `file_path: ./data/state_store.db` 是相对于启动进程的 CWD 的。从 `~/.agentmemory` 启动才能保证数据在标准位置。
-- **工具数量：** Local 模式 7 个，Proxy 模式下约 50+。
-- **测试记忆要清理：** 诊断过程中产生的测试记忆用 `memory_governance_delete` 清理，别污染持久存储。
+Decision matrix:
 
-## FALSE-ALIVE 陷阱（重要）
-
-**现象：** `memory_recall` 返回了历史记忆（包括之前的持久数据），但 `localhost:3111` 的 livez/health 其实挂了。
-**原因：** MCP server 在探测到后端不可达时，**回退到 InMemoryKV 缓存**，里面存了之前 session 缓存的旧数据。所以 recall 看起来正常，但新写入的数据**不会持久化**。
-**危险：** 比单纯的「recall 为空」更隐蔽。**永远不要用 `memory_recall` 判断后端是否活着。**
-
-决策矩阵：
-| livez/health | memory_recall | 含义 |
+| livez/health | memory_recall | Meaning |
 |---|---|---|
-| 200 | 有数据 | ✅ 正常 |
-| 失败 | 空 | 后端挂了，InMemoryKV 空 |
-| 失败 | 有数据 | ⚠️ **FALSE-ALIVE**，后端实际挂了，新写入不持久 |
+| 200 | returns data | ✅ Healthy |
+| fails | empty | Backend down, InMemoryKV empty |
+| fails | returns data | ⚠️ **FALSE-ALIVE** -- backend actually down, new writes lost |
 
-## 验证清单
+### 4. Auto-start timeout
+If the SessionStart auto-start hook fails to start the backend within ~30s, it gives up.
+Run manually:
 
-所有通过才算正常：
+```
+agentmemory
+```
 
-- [ ] 工具列表中能看到 `mcp__agentmemory__*` 系列工具
-- [ ] `memory_save` → 返回 `"saved": "mem_xxx"`
-- [ ] `memory_recall` → 能搜到刚才保存的内容
-- [ ] 重启 Codex 后数据仍然可读（持久化验证）
+Wait for the status box, then restart Codex.
 
-## 引用文件
+## Verification Checklist
 
-以下文件保留供参考，但部分内容涉及 REST API 模式（当前未使用）：
+All must pass:
 
-- `references/windows-404-rootcause.md` — Windows 上 404 问题的 GitHub issue 研究总结
-- `references/iii-http-port-conflict.md` — iii-http 端口冲突详解
-- `references/delete-observations.md` — 通过 REST API 删除 Observations（REST mode 下有效）
-- `references/memory-cleanup-hygiene.md` — 记忆清理指南
-- `references/merge-offline-data.md` — 合并非活跃数据副本（已执行过）
-- `references/standalone-json-import.md` — 从 standalone.json 导入记忆
-- `scripts/probe_agentmemory.py` — 健康探测脚本（REST API mode）
-- `scripts/verify_roundtrip.py` — 完整读写往返验证脚本
+- [ ] `mcp__agentmemory__*` tools visible in the tool list
+- [ ] `memory_save` returns `"saved": "mem_xxx"`
+- [ ] `memory_recall` finds the saved content
+- [ ] Data persists after Codex restart (proxy mode confirmed)
+
+## Reference Files
+
+The following references document past issues and recovery procedures:
+
+- `references/windows-404-rootcause.md` -- Historical root-cause research on Windows 404 issue (iii-exec watch bug, fixed in later releases)
+- `references/iii-http-port-conflict.md` -- Port conflict details (deprecated -- use official CLI single command)
+- `references/delete-observations.md` -- How to delete observations via `POST /agentmemory/forget`
+- `references/memory-cleanup-hygiene.md` -- Memory cleanup best practices
+- `references/merge-offline-data.md` -- Merging orphaned data copies
+- `references/standalone-json-import.md` -- Importing from `standalone.json` backup
+- `scripts/probe_agentmemory.py` -- Health probe script
+- `scripts/verify_roundtrip.py` -- Round-trip verification script (contains Hermes-specific paths; adapt for Codex use)
