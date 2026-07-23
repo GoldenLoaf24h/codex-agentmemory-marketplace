@@ -1,6 +1,6 @@
 {
   "name": "agentmemory",
-  "version": "0.9.27",
+  "version": "0.9.28",
   "description": "Windows-oriented Codex packaging of rohitg00/agentmemory: local MCP, hooks, auto-start, and optimized skills.",
   "author": {
     "name": "GoldenLoaf24h",
