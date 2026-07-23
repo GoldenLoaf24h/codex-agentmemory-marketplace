@@ -1,0 +1,15 @@
+# Apache License
+# Version 2.0, January 2004
+# http://www.apache.org/licenses/
+
+This repository redistributes and packages assets derived from:
+
+  https://github.com/rohitg00/agentmemory
+
+for Codex / ChatGPT Desktop use on Windows, under Apache-2.0.
+
+Upstream project: rohitg00/agentmemory
+Upstream license: Apache-2.0
+See: https://github.com/rohitg00/agentmemory/blob/main/LICENSE
+
+Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.

@@ -1,0 +1,42 @@
+{
+  "name": "agentmemory",
+  "version": "0.9.27",
+  "description": "Windows-oriented Codex packaging of rohitg00/agentmemory: local MCP, hooks, auto-start, and optimized skills.",
+  "author": {
+    "name": "PyEL666",
+    "url": "https://github.com/PyEL666"
+  },
+  "license": "Apache-2.0",
+  "homepage": "https://github.com/PyEL666/codex-agentmemory-marketplace",
+  "repository": "https://github.com/PyEL666/codex-agentmemory-marketplace",
+  "keywords": [
+    "agentmemory",
+    "rohitg00",
+    "memory",
+    "codex",
+    "windows",
+    "mcp",
+    "hooks"
+  ],
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "AgentMemory (Codex / Windows)",
+    "shortDescription": "Based on rohitg00/agentmemory for Windows Codex Desktop",
+    "longDescription": "Unofficial community packaging of rohitg00/agentmemory for Windows + Codex / ChatGPT Desktop. Includes portable MCP config, SessionStart auto-start for the local REST backend on port 3111, lifecycle hooks, and optimized skills for recall, remember, handoff, troubleshooting, and session history. Requires Node.js. Not an official OpenAI Plugins Directory listing.",
+    "developerName": "PyEL666",
+    "category": "Productivity",
+    "capabilities": [
+      "Interactive",
+      "Write"
+    ],
+    "websiteURL": "https://github.com/PyEL666/codex-agentmemory-marketplace",
+    "privacyPolicyURL": "https://github.com/rohitg00/agentmemory/blob/main/LICENSE",
+    "termsOfServiceURL": "https://github.com/rohitg00/agentmemory/blob/main/LICENSE",
+    "defaultPrompt": [
+      "Remember this for future sessions",
+      "Recall what we did before about this topic",
+      "Show me my session history"
+    ]
+  }
+}

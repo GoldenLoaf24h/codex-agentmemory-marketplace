@@ -1,0 +1,20 @@
+{
+  "name": "codex-agentmemory",
+  "interface": {
+    "displayName": "Codex AgentMemory (Windows)"
+  },
+  "plugins": [
+    {
+      "name": "agentmemory",
+      "source": {
+        "source": "local",
+        "path": "./plugins/agentmemory"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    }
+  ]
+}
