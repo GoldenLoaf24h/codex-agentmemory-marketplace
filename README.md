@@ -89,9 +89,12 @@ First run launches an interactive setup (select agents, configure LLM provider).
 
 3. Click **Add marketplace**
 4. Install **AgentMemory (Codex / Windows)** from the marketplace
-5. **Restart** the app or start a **new task** after install
+5. **Approve all hooks** — go to **Settings → Hooks**, review each hook, and click **Allow / Approve** for every hook entry belonging to this plugin. **Hooks will not run until you explicitly approve them.**
+6. **Restart** the app or start a **new task** after install
 
 Marketplace file: `.agents/plugins/marketplace.json`
+
+> **Important:** Codex Desktop requires explicit user approval for every hook a plugin registers. After installing this plugin, navigate to **Settings → Hooks** and approve all hooks (SessionStart, UserPromptSubmit, PreToolUse, PostToolUse, PreCompact, Stop). Until approved, the plugin's auto-start, memory recall, and observation capture will be completely silent — no errors, just nothing happens.
 
 ## First-run behavior
 
