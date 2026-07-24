@@ -1,7 +1,7 @@
 {
   "name": "codex-agentmemory",
   "interface": {
-    "displayName": "Codex AgentMemory (Windows)"
+    "displayName": "AgentMemory"
   },
   "plugins": [
     {

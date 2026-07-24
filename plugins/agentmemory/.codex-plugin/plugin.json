@@ -21,7 +21,7 @@
   "skills": "./skills/",
   "mcpServers": "./.mcp.json",
   "interface": {
-    "displayName": "AgentMemory (Codex / Windows)",
+    "displayName": "AgentMemory",
     "shortDescription": "Based on rohitg00/agentmemory for Windows Codex Desktop",
     "longDescription": "Unofficial community packaging of rohitg00/agentmemory for Windows + Codex / ChatGPT Desktop. Includes portable MCP config, SessionStart auto-start for the local REST backend on port 3111, lifecycle hooks, and optimized skills for recall, remember, handoff, troubleshooting, and session history. Requires Node.js. Not an official OpenAI Plugins Directory listing.",
     "developerName": "GoldenLoaf24h",
