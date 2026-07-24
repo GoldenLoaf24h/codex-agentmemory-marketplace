@@ -37,6 +37,8 @@
       "Remember this for future sessions",
       "Recall what we did before about this topic",
       "Show me my session history"
-    ]
+    ],
+    "logo": "./assets/logo.png",
+    "composerIcon": "./assets/composer-icon.png"
   }
 }
