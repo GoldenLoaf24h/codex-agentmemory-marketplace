@@ -1,4 +1,4 @@
-#!/usr/bin/env node
+﻿#!/usr/bin/env node
 /**
  * start-agentmemory.mjs
  *
@@ -50,11 +50,11 @@ async function probeLivez() {
 async function main() {
   // Fast check — already running?
   if (await probeLivez()) {
-    console.log('[agentmemory] REST API already running');
+    // backend already running, silent exit
     process.exit(0);
   }
 
-  console.log('[agentmemory] Starting REST API via shell...');
+  // starting backend silently
 
   // spawn with shell: true so cmd.exe resolves agentmemory(.cmd) from PATH,
   // matching what the user types in terminal. No npx, no npm prefix lookup.
@@ -71,14 +71,14 @@ async function main() {
   for (let i = 0; i < MAX_WAIT_SEC; i++) {
     await new Promise((r) => setTimeout(r, 1000));
     if (await probeLivez()) {
-      console.log(`[agentmemory] Ready after ${i + 1}s`);
+      // backend ready
       process.exit(0);
     }
   }
 
   // Timeout — warn but don't block Codex startup
-  console.error(`[agentmemory] WARNING: REST API did not start within ${MAX_WAIT_SEC}s`);
-  console.error('[agentmemory] Run manually: agentmemory');
+  // WARNING: backend did not start in time
+  // Run manually: agentmemory
   process.exit(1);
 }
 
